@@ -1,0 +1,18 @@
+# 原始 SketchUp 商業外掛檔案（第三方著作權，不隨這個 repo 發布）
+DB3D-Floora_v1.0.0_protected.rbz
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# .NET 編譯輸出（可用 dotnet build 重新產生，不需要進版控）
+RhinoFloora_CS/DB3DFloora/bin/
+RhinoFloora_CS/DB3DFloora/obj/
+
+# yak-any/ 底下的 net7.0/net48 子資料夾是打包用的來源檔複本，跟 bin/ 內容重複；
+# 但最終產出的 .yak 安裝檔要保留，所以只忽略複本，不忽略整個資料夾
+RhinoFloora_CS/DB3DFloora/yak-any/net7.0/*.rhp
+RhinoFloora_CS/DB3DFloora/yak-any/net48/*.rhp
