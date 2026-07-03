@@ -4,6 +4,8 @@
 
 Rhino 版移植：**Onon.Nihow**
 
+![DB3D-Floora for Rhino 操作介面截圖](docs/screenshot.png)
+
 ## 功能
 
 - **18 種拼貼圖案**：磚縫鋪、對縫鋪、隨作鋪、楔形、斜紋鋪、人字鋪、魚骨拼、編織紋、大小格子 1–4、六邊形、八邊形、工字塊、鑽石紋、扇形磚、不規則多邊形（Voronoi）

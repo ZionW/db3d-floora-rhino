@@ -10,47 +10,47 @@ namespace DB3DFloora
     {
         private const int MaxTextures = 5;
 
-        private static readonly (string Subtitle, string[] Lines)[] UsageGroups =
+        private static (string Subtitle, string[] Lines)[] UsageGroups => new[]
         {
-            ("1. 選圖案與尺寸", new[]
+            (Strings.T("info.usage.1.title"), new[]
             {
-                "從「圖案」縮圖選擇鋪貼樣式",
-                "在「尺寸與縫隙」設定長寬、縫寬、縫深",
-                "部分圖案還會有錯縫%／斜紋角度／編織數、旋轉角度、起始點",
+                Strings.T("info.usage.1.a"),
+                Strings.T("info.usage.1.b"),
+                Strings.T("info.usage.1.c"),
             }),
-            ("2. 設定材質", new[]
+            (Strings.T("info.usage.2.title"), new[]
             {
-                "上色模式：目前材質／自訂顏色／貼圖材質",
-                $"貼圖材質最多可選 {MaxTextures} 張圖片，縮圖右上角 x 可個別移除",
+                Strings.T("info.usage.2.a"),
+                Strings.T("info.usage.2.b", MaxTextures),
             }),
-            ("3. 紋理（貼圖材質模式）", new[]
+            (Strings.T("info.usage.3.title"), new[]
             {
-                "對齊邊／隨機位置／隨機旋轉",
+                Strings.T("info.usage.3.a"),
             }),
-            ("4. 效果", new[]
+            (Strings.T("info.usage.4.title"), new[]
             {
-                "倒斜角、隨機缺陷、背面、獨立群組",
+                Strings.T("info.usage.4.a"),
             }),
-            ("5. 選面與預覽", new[]
+            (Strings.T("info.usage.5.title"), new[]
             {
-                "按「選擇物件」選面，移動滑鼠即時預覽鋪磚位置（純畫面顯示，不會產生真的線段）",
-                "左鍵點擊決定起磚點，按 Esc／右鍵取消不留下任何東西",
-                "起磚點確定後仍可持續調整參數，預覽會即時更新",
+                Strings.T("info.usage.5.a"),
+                Strings.T("info.usage.5.b"),
+                Strings.T("info.usage.5.c"),
             }),
-            ("6. 產生與管理", new[]
+            (Strings.T("info.usage.6.title"), new[]
             {
-                "按「產生磚塊」確認並生成正式磚片",
-                "「復原」可撤銷最近 3 次操作；「重設」回到預設值",
+                Strings.T("info.usage.6.a"),
+                Strings.T("info.usage.6.b"),
             }),
-            ("7. 材料計算機", new[]
+            (Strings.T("info.usage.7.title"), new[]
             {
-                "統計已產生磚片的面積、估算用量，並可匯出 CSV／圖片",
+                Strings.T("info.usage.7.a"),
             }),
         };
 
         public InfoForm()
         {
-            Title = "外掛說明";
+            Title = Strings.T("info.title");
             Topmost = true;
             Resizable = true;
             BackgroundColor = UiStyle.CBg;
@@ -99,11 +99,16 @@ namespace DB3DFloora
             var titleFont = UiStyle.F("title");
             var subheadFont = UiStyle.F("subhead");
 
-            var title = UiStyle.MakeLabel("DB3D Floora for Rhino", titleFont, UiStyle.CAccent, TextAlignment.Left);
+            var title = UiStyle.MakeLabel(Strings.T("info.appName"), titleFont, UiStyle.CAccent, TextAlignment.Left);
             UiStyle.AddRow(outer, title);
+
+            string versionText = UiStyle.PluginVersionText();
+            if (!string.IsNullOrEmpty(versionText))
+                UiStyle.AddRow(outer, UiStyle.MakeLabel(versionText, null, UiStyle.CTextSub, TextAlignment.Left));
+
             UiStyle.AddRow(outer, UiStyle.Hr());
 
-            UiStyle.AddRow(outer, UiStyle.SectionLabel("使用方式", sectionFont, UiStyle.CAccent));
+            UiStyle.AddRow(outer, UiStyle.SectionLabel(Strings.T("info.usage"), sectionFont, UiStyle.CAccent));
             foreach (var (subtitle, lines) in UsageGroups)
             {
                 UiStyle.AddRow(outer, UiStyle.MakeLabel(subtitle, subheadFont, UiStyle.CText, TextAlignment.Left));
@@ -112,14 +117,15 @@ namespace DB3DFloora
             }
 
             UiStyle.AddRow(outer, UiStyle.Hr());
-            UiStyle.AddRow(outer, UiStyle.SectionLabel("作者介紹", sectionFont, UiStyle.CAccent));
-            UiStyle.AddRow(outer, UiStyle.MakeLabel("原始外掛：DB3D-Floora（SketchUp 版）", null, null, TextAlignment.Left));
-            UiStyle.AddRow(outer, UiStyle.MakeLabel("製作：DB3D.RENDER", null, UiStyle.CTextSub, TextAlignment.Left));
-            outer.Items.Add(new StackLayoutItem(LinkRow("官網：", "https://www.db3drender.com/")));
-            outer.Items.Add(new StackLayoutItem(LinkRow("Instagram：", "https://www.instagram.com/db3d.render/")));
+            UiStyle.AddRow(outer, UiStyle.SectionLabel(Strings.T("info.authors"), sectionFont, UiStyle.CAccent));
+            UiStyle.AddRow(outer, UiStyle.MakeLabel(Strings.T("info.originalPlugin"), null, null, TextAlignment.Left));
+            UiStyle.AddRow(outer, UiStyle.MakeLabel(Strings.T("info.madeBy"), null, UiStyle.CTextSub, TextAlignment.Left));
+            outer.Items.Add(new StackLayoutItem(LinkRow(Strings.T("info.website"), "https://www.db3drender.com/")));
+            outer.Items.Add(new StackLayoutItem(LinkRow(Strings.T("info.instagram"), "https://www.instagram.com/db3d.render/")));
 
             UiStyle.AddRow(outer, UiStyle.Hr());
-            UiStyle.AddRow(outer, UiStyle.MakeLabel("Rhino 版製作：Onon.Nihow", null, UiStyle.CAccent, TextAlignment.Left));
+            UiStyle.AddRow(outer, UiStyle.MakeLabel(Strings.T("info.rhinoPort"), null, UiStyle.CAccent, TextAlignment.Left));
+            outer.Items.Add(new StackLayoutItem(LinkRow(Strings.T("info.github"), "https://github.com/ZionW/db3d-floora-rhino")));
 
             Content = outer;
         }

@@ -28,7 +28,7 @@ namespace DB3DFloora
             Size = new Size(TileW, TileH);
             _polys = IconsUtil.SamplePolygons(patternId);
             Paint += OnPaint;
-            MouseDown += OnMouseDown;
+            MouseUp += OnMouseUp;
             MouseEnter += OnMouseEnter;
             MouseLeave += OnMouseLeave;
             try { Cursor = Cursors.Pointer; } catch { }
@@ -43,7 +43,13 @@ namespace DB3DFloora
             }
         }
 
-        private void OnMouseDown(object sender, MouseEventArgs e) => _onSelect(PatternId);
+        // _onSelect 最終會觸發 Rhino 互動選取（阻塞的 GetObject）。用 MouseUp（點擊放開的那一刻）
+        // 而不是 MouseDown 觸發：MouseDown 當下 OS 的滑鼠按下/放開手勢還沒跑完，這時候就切進阻塞
+        // 迴圈，在 Windows 上這個時間點有時候拿不到，導致「看起來沒反應」甚至完全叫不出選取流程；
+        // 等 MouseUp（整個點擊手勢確定已經結束）再觸發，跨平台行為才會一致。之前試過改用
+        // AsyncInvoke 延後執行，但那個時機依賴各平台訊息佇列的實作細節，Windows 上不夠可靠，
+        // 改成直接用 MouseUp 這個原生事件本身來說明「點擊已經完成」比較穩妥。
+        private void OnMouseUp(object sender, MouseEventArgs e) => _onSelect(PatternId);
         private void OnMouseEnter(object sender, MouseEventArgs e) { Hovered = true; Invalidate(); }
         private void OnMouseLeave(object sender, MouseEventArgs e) { Hovered = false; Invalidate(); }
 

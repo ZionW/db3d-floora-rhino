@@ -12,11 +12,14 @@
     <TargetExt>.rhp</TargetExt>
     <NoWarn>NU1701</NoWarn>
     <LangVersion>latest</LangVersion>
+    <!-- 專案現在放進 git repo 後，SDK 預設會把 commit hash 掛到 AssemblyInformationalVersion 尾巴，
+         導致 Yak 套件版號變成「1.0.2+<hash>」。關掉這個行為，保持版號乾淨對應 <Version>。 -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   
   <PropertyGroup>
     <!-- Specifies information for Assembly and Yak -->
-    <Version>1.0.1</Version>
+    <Version>1.0.7</Version>
     <Title>DB3DFloora</Title>
     <Company>Onon.Nihow</Company>
     <Description>DB3D-Floora 磁磚／地板拼貼圖案產生器與材料計算機（原 SketchUp 外掛 by DB3D.RENDER，Rhino 版移植 by Onon.Nihow）</Description>

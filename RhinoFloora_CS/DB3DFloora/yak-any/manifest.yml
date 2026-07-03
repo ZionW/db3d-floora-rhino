@@ -1,6 +1,6 @@
 ---
 name: DB3DFloora
-version: 1.0.1
+version: 1.0.7
 authors:
 - Onon.Nihow
 description: DB3D-Floora 磁磚／地板拼貼圖案產生器與材料計算機（原 SketchUp 外掛 by DB3D.RENDER，Rhino 版移植 by Onon.Nihow）

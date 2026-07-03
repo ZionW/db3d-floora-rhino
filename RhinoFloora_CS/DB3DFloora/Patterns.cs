@@ -56,6 +56,52 @@ namespace DB3DFloora
             };
         }
 
+        /// <summary>人字鋪：矩形磚片交錯 90 度堆疊，接縫處有小階梯（跟魚骨拼連續斜線不同）。
+        /// gx=2*gy（新版預設值正是這個比例）時完全密拼不留縫；其他比例仍會拼出人字鋪的樣子，
+        /// 但接縫嚴謹度會打折。格線用 (i*gy - j*(gx+gy), (i+j)*gy) 這組非直角格點，
+        /// 每格放一片橫向、一片直向的磚（已用精確幾何運算驗證過零重疊、零縫隙）。</summary>
+        public static List<UvPoly> CellHerringbone(int i, int j, double gx, double gy, double gw, TileOptions opts)
+        {
+            double hw = gw / 2.0;
+            double u0 = i * gy - j * (gx + gy);
+            double v0 = (i + j) * gy;
+            return new List<UvPoly>
+            {
+                GeometryUtil.Rect(u0, v0, gx, gy, hw),
+                GeometryUtil.Rect(u0, v0 + gy, gy, gx, hw),
+            };
+        }
+
+        /// <summary>魚骨拼：連續 V 字斜紋，磚片是平行四邊形，相鄰磚的斜邊連成一直線，
+        /// 沒有人字鋪那種小階梯。每格沿著 45 度方向放一片「上坡」、一片「下坡」磚
+        /// （已用精確幾何運算驗證過零重疊、零縫隙）。</summary>
+        public static List<UvPoly> CellChevron(int i, int j, double gx, double gy, double gw, TileOptions opts)
+        {
+            double hw = gw / 2.0;
+            double s = Math.Sqrt(2.0) / 2.0;
+            double arm = (gx + gw) * s;
+            double rh = gy + gw;
+            double vw = 2.0 * arm;
+            double diagLen = arm * Math.Sqrt(2.0); // = gx + gw
+
+            List<(double U, double V)> Parallelogram((double X, double Y) diagDir, double ox, double oy)
+            {
+                var corners = new (double A, double B)[]
+                {
+                    (hw, hw), (diagLen - hw, hw), (diagLen - hw, rh - hw), (hw, rh - hw),
+                };
+                var poly = new UvPoly();
+                foreach (var c in corners)
+                    poly.Add((ox + c.A * diagDir.X, oy + c.A * diagDir.Y + c.B));
+                return poly;
+            }
+
+            double x0 = j * vw, y0 = i * rh;
+            var rising = Parallelogram((s, s), x0, y0);
+            var falling = Parallelogram((s, -s), x0 + arm, y0 + arm);
+            return new List<UvPoly> { rising, falling };
+        }
+
         public static List<UvPoly> CellBasketweave(int i, int j, double gx, double gy, double gw, TileOptions opts)
         {
             int bwb = Math.Max(2, opts.Bwb);
@@ -160,6 +206,53 @@ namespace DB3DFloora
             return new List<UvPoly> { pts };
         }
 
+        /// <summary>扇形磚的真正 3D 幾何：跟 CellFanTile 用同一套網格（i/j、shift、cu/cv、center、rad），
+        /// 但弧邊直接建成 Arc（3 點定弧，端點/中點座標跟舊版折線的 k=0/segs/2/segs 三點完全對應），
+        /// 再跟收邊直線 JoinCurves 成一條封閉曲線、轉成 NurbsCurve，不再用多段折線逼近圓弧。</summary>
+        private static List<Curve> FanTileCurves(double diag, double gx, double gw, Plane gridPlane)
+        {
+            double r = gx;
+            double rowH = r;
+            double hw = gw / 2.0;
+            double rad = Math.Max(r - hw, 0.05);
+            int n = GridCount(diag, Math.Min(2.0 * gx, gx));
+
+            var result = new List<Curve>();
+            for (int i = -n; i <= n; i++)
+            {
+                for (int j = -n; j <= n; j++)
+                {
+                    double shift = (j % 2 != 0 ? 1 : 0) * r;
+                    double cu = i * 2 * r - shift;
+                    double cv = j * rowH;
+                    double cx = cu, cy = cv + rowH;
+
+                    Point3d p0 = gridPlane.PointAt(cx - rad, cy);
+                    Point3d pMid = gridPlane.PointAt(cx, cy - rad);
+                    Point3d p1 = gridPlane.PointAt(cx + rad, cy);
+
+                    try
+                    {
+                        var arc = new Arc(p0, pMid, p1);
+                        if (!arc.IsValid)
+                            continue;
+                        var pieces = new Curve[] { new ArcCurve(arc), new LineCurve(p1, p0) };
+                        var joined = Curve.JoinCurves(pieces, GeometryUtil.Tol);
+                        if (joined == null || joined.Length == 0)
+                            continue;
+                        var tile = joined[0].ToNurbsCurve();
+                        if (tile != null && tile.IsValid)
+                            result.Add(tile);
+                    }
+                    catch
+                    {
+                        // 單片扇形磚建構失敗就跳過，不擋整個圖案的生成
+                    }
+                }
+            }
+            return result;
+        }
+
         /// <summary>「大小格子」系列：一個週期內放一片大方磚＋數片小方磚，(col,row,span) 皆以「小格」為單位。</summary>
         public static readonly Dictionary<string, (int Period, (int Col, int Row, int Span)[] Big, (int Col, int Row, int Span)[] Small)> HopscotchLayouts =
             new Dictionary<string, (int, (int, int, int)[], (int, int, int)[])>
@@ -192,8 +285,8 @@ namespace DB3DFloora
                 {"Brick", CellOffsetRect},
                 {"Tile", CellOffsetRect},
                 {"Wedge", CellWedge},
-                {"Hbone", (i, j, gx, gy, gw, opts) => CellOffsetRect(i, j, gx, gy, gw, WithR2r(opts, 50.0))},
-                {"Chevrn", (i, j, gx, gy, gw, opts) => CellOffsetRect(i, j, gx, gy, gw, WithR2r(opts, 50.0))},
+                {"Hbone", CellHerringbone},
+                {"Chevrn", CellChevron},
                 {"BsktWv", CellBasketweave},
                 {"Hexgon", CellHexagon},
                 {"Octgon", CellOctagon},
@@ -470,6 +563,15 @@ namespace DB3DFloora
             {
                 raw = IrregularPolygonPolys(diag, gx, gw);
             }
+            else if (patternId == "FanTil")
+            {
+                // 扇形磚的弧邊要是真正的弧線／NURBS，不能像其他圖案一樣攤平成多邊形折線，
+                // 所以直接在 3D 空間建出真正的 Arc + 直線再裁切，跳過 UV 多邊形那條路徑。
+                var fanCurves = FanTileCurves(diag, gx, gw, gridPlane);
+                if (fanCurves.Count > 30000)
+                    throw new ArgumentException("磚片數量過多，請放大磚片尺寸或縮小選取範圍");
+                return GeometryUtil.ClipCurvesToBoundary(fanCurves, boundaryCurve);
+            }
             else
             {
                 if (!PatternCellFuncs.TryGetValue(patternId, out var cellFn))
@@ -493,10 +595,15 @@ namespace DB3DFloora
                 {
                     cellGx = cellGy = gx + gw;
                 }
-                else if (patternId == "FanTil")
+                else if (patternId == "Hbone")
                 {
-                    cellGx = 2.0 * gx;
-                    cellGy = gx;
+                    // 非直角格線（見 CellHerringbone），用較小的 gy 當步進距離保守估計，確保涵蓋整個邊界。
+                    cellGx = cellGy = gy;
+                }
+                else if (patternId == "Chevrn")
+                {
+                    cellGx = (gx + gw) * Math.Sqrt(2.0);
+                    cellGy = gy + gw;
                 }
                 else if (HopscotchLayouts.ContainsKey(patternId))
                 {

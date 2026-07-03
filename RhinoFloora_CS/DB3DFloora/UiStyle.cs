@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Eto.Drawing;
 using Eto.Forms;
 
@@ -155,6 +156,14 @@ namespace DB3DFloora
         public static System.Drawing.Color ToSysColor(Color etoColor)
         {
             return System.Drawing.Color.FromArgb(etoColor.Rb, etoColor.Gb, etoColor.Bb);
+        }
+
+        /// <summary>目前組件版本（對應 DB3DFloora.csproj 的 &lt;Version&gt;），格式 "vX.Y.Z"。
+        /// 介面最下方跟「外掛說明」視窗都用這個，改版號時只要改 csproj，兩處都會自動同步。</summary>
+        public static string PluginVersionText()
+        {
+            var v = Assembly.GetExecutingAssembly().GetName().Version;
+            return v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "";
         }
 
         public static void OpenUrl(string url)

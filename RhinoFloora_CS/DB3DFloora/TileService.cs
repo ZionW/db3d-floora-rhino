@@ -311,8 +311,14 @@ namespace DB3DFloora
 
         public static ObjRef PickFace()
         {
+            // 從介面上的按鈕／圖案磚塊點擊觸發這個互動選取時，鍵盤/滑鼠焦點還停留在 Eto 的浮動
+            // 面板上（不是 Rhino 的 3D 檢視窗）。macOS 底下 Rhino 通常會自動把輸入轉給檢視窗，
+            // 但 Windows（分開的 HWND）不一定會自動轉過去，導致 GetObject 選取沒辦法正常接收
+            // 點擊。這裡先明確把焦點還給 Rhino 主視窗，兩個平台都呼叫一次，Mac 上是無害的重複動作。
+            try { Rhino.UI.RhinoEtoApp.MainWindow?.Focus(); } catch { }
+
             var go = new GetObject();
-            go.SetCommandPrompt("請選取要鋪磚的平面（面或封閉平面曲線），按 Enter/Esc 取消");
+            go.SetCommandPrompt(Strings.T("prompt.pickFace"));
             go.GeometryFilter = ObjectType.Surface | ObjectType.Brep | ObjectType.Curve;
             go.SubObjectSelect = true;
             var result = go.Get();

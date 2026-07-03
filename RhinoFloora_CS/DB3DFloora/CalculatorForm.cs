@@ -23,7 +23,7 @@ namespace DB3DFloora
 
         public CalculatorForm(List<LayerStat> stats)
         {
-            Title = "材料計算機";
+            Title = Strings.T("calc.title");
             Topmost = true;
             Resizable = true;
             BackgroundColor = UiStyle.CBg;
@@ -44,7 +44,7 @@ namespace DB3DFloora
             var titleFont = UiStyle.F("title");
             var sectionFont = UiStyle.F("section");
 
-            var title = UiStyle.MakeLabel("材料計算機", titleFont, UiStyle.CAccent, TextAlignment.Left);
+            var title = UiStyle.MakeLabel(Strings.T("calc.title"), titleFont, UiStyle.CAccent, TextAlignment.Left);
             UiStyle.AddRow(outer, title);
             UiStyle.AddRow(outer, UiStyle.Hr());
 
@@ -52,21 +52,21 @@ namespace DB3DFloora
             double totalPing = totalArea / CalculatorUtil.M2PerPing;
             _totalArea = totalArea;
 
-            UiStyle.AddRow(outer, UiStyle.SectionLabel("圖層統計", sectionFont, UiStyle.CAccent));
+            UiStyle.AddRow(outer, UiStyle.SectionLabel(Strings.T("calc.layerStats"), sectionFont, UiStyle.CAccent));
             if (stats.Count == 0)
             {
-                UiStyle.AddRow(outer, UiStyle.MakeLabel("目前模型中沒有 Floora 產生的磚片圖層", null, UiStyle.CTextSub, TextAlignment.Left));
+                UiStyle.AddRow(outer, UiStyle.MakeLabel(Strings.T("calc.noLayers"), null, UiStyle.CTextSub, TextAlignment.Left));
             }
             foreach (var s in stats)
             {
                 UiStyle.AddRow(outer, UiStyle.MakeLabel(
-                    $"{s.Name}：{s.Count} 片，{s.AreaM2:F2} m²（{s.AreaPing:F2} 坪）", null, null, TextAlignment.Left));
+                    Strings.T("calc.layerLine", s.Name, s.Count, s.AreaM2, s.AreaPing), null, null, TextAlignment.Left));
             }
             UiStyle.AddRow(outer, UiStyle.MakeLabel(
-                $"總計：{totalArea:F2} m²（{totalPing:F2} 坪）", null, UiStyle.CAccent, TextAlignment.Left));
+                Strings.T("calc.total", totalArea, totalPing), null, UiStyle.CAccent, TextAlignment.Left));
 
             UiStyle.AddRow(outer, UiStyle.Hr());
-            UiStyle.AddRow(outer, UiStyle.SectionLabel("磚片估算", sectionFont, UiStyle.CAccent));
+            UiStyle.AddRow(outer, UiStyle.SectionLabel(Strings.T("calc.estimate"), sectionFont, UiStyle.CAccent));
 
             NumericStepper NumField(double defaultVal)
             {
@@ -87,23 +87,23 @@ namespace DB3DFloora
                 return lbl;
             }
 
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("磚片長 (cm)"), _lenBox, null)));
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("磚片寬 (cm)"), _widBox, null)));
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("耗損率 (%)"), _wasteBox, null)));
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("每箱片數"), _pcsBox, null)));
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("每箱價格"), _priceBoxBox, null)));
-            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel("每坪價格"), _pricePingBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.tileLen")), _lenBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.tileWid")), _widBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.wastePct")), _wasteBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.pcsPerBox")), _pcsBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.pricePerBox")), _priceBoxBox, null)));
+            outer.Items.Add(new StackLayoutItem(UiStyle.HRow(FieldLabel(Strings.T("field.pricePerPing")), _pricePingBox, null)));
 
             _resultLabel = UiStyle.MakeLabel("");
-            var btn = UiStyle.MakeButton("計算", true);
+            var btn = UiStyle.MakeButton(Strings.T("btn.calc"), true);
             btn.Click += (s, e) => Recalc(totalArea);
             UiStyle.AddRow(outer, btn);
             UiStyle.AddRow(outer, _resultLabel);
 
             UiStyle.AddRow(outer, UiStyle.Hr());
-            var btnCsv = UiStyle.MakeButton("匯出 CSV");
+            var btnCsv = UiStyle.MakeButton(Strings.T("btn.exportCsv"));
             btnCsv.Click += OnExportCsv;
-            var btnImg = UiStyle.MakeButton("匯出圖片");
+            var btnImg = UiStyle.MakeButton(Strings.T("btn.exportImage"));
             btnImg.Click += OnExportImage;
             outer.Items.Add(new StackLayoutItem(UiStyle.HRow(btnCsv, btnImg)));
 
@@ -121,18 +121,16 @@ namespace DB3DFloora
             _lastEstimate = r;
             if (r == null)
             {
-                _resultLabel.Text = "請輸入有效的磚片尺寸";
+                _resultLabel.Text = Strings.T("calc.invalidSize");
                 return;
             }
-            _resultLabel.Text =
-                $"含耗損面積：{r.NeededAreaM2:F2} m²\n需求片數：{r.TileCount} 片\n需求箱數：{r.Boxes} 箱\n" +
-                $"估價（依箱）：{r.PriceByBox:F0}\n估價（依坪）：{r.PriceByPing:F0}";
+            _resultLabel.Text = Strings.T("calc.result", r.NeededAreaM2, r.TileCount, r.Boxes, r.PriceByBox, r.PriceByPing);
         }
 
         private void OnExportCsv(object sender, EventArgs e)
         {
-            var dlg = new SaveFileDialog { Title = "匯出 CSV", FileName = "floora_計算結果.csv" };
-            var f = new FileFilter("CSV 檔案", new[] { ".csv" });
+            var dlg = new SaveFileDialog { Title = Strings.T("dlg.exportCsv"), FileName = Strings.T("file.calcResultCsv") };
+            var f = new FileFilter(Strings.T("dlg.csvFiles"), new[] { ".csv" });
             dlg.Filters.Add(f);
             dlg.CurrentFilter = f;
             var result = dlg.ShowDialog(this);
@@ -144,18 +142,18 @@ namespace DB3DFloora
             try
             {
                 CalculatorUtil.WriteCsv(path, _stats, _lastEstimate);
-                MessageBox.Show(this, $"已匯出：\n{path}", "DB3D-Floora");
+                MessageBox.Show(this, Strings.T("msg.exported", path), Strings.T("dlg.appName"));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"匯出失敗：{ex.Message}", "DB3D-Floora");
+                MessageBox.Show(this, Strings.T("msg.exportFailed", ex.Message), Strings.T("dlg.appName"));
             }
         }
 
         private void OnExportImage(object sender, EventArgs e)
         {
-            var dlg = new SaveFileDialog { Title = "匯出圖片", FileName = "floora_計算結果.png" };
-            var f = new FileFilter("PNG 圖片", new[] { ".png" });
+            var dlg = new SaveFileDialog { Title = Strings.T("dlg.exportImage"), FileName = Strings.T("file.calcResultPng") };
+            var f = new FileFilter(Strings.T("dlg.pngFiles"), new[] { ".png" });
             dlg.Filters.Add(f);
             dlg.CurrentFilter = f;
             var result = dlg.ShowDialog(this);
@@ -167,11 +165,11 @@ namespace DB3DFloora
             try
             {
                 RenderResultImage(path);
-                MessageBox.Show(this, $"已匯出：\n{path}", "DB3D-Floora");
+                MessageBox.Show(this, Strings.T("msg.exported", path), Strings.T("dlg.appName"));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"匯出失敗：{ex.Message}", "DB3D-Floora");
+                MessageBox.Show(this, Strings.T("msg.exportFailed", ex.Message), Strings.T("dlg.appName"));
             }
         }
 
@@ -180,21 +178,17 @@ namespace DB3DFloora
             var titleFont = new Font(FontFamilies.Sans, 13, FontStyle.Bold);
             var bodyFont = new Font(FontFamilies.Sans, 11);
 
-            var lines = new List<string> { "DB3D Floora 材質計算結果" };
+            var lines = new List<string> { Strings.T("calc.resultImageTitle") };
             foreach (var s in _stats)
-                lines.Add($"{s.Name}：{s.Count} 片，{s.AreaM2:F2} m²（{s.AreaPing:F2} 坪）");
+                lines.Add(Strings.T("calc.layerLine", s.Name, s.Count, s.AreaM2, s.AreaPing));
             double totalArea = _stats.Sum(s => s.AreaM2);
             double totalPing = totalArea / CalculatorUtil.M2PerPing;
-            lines.Add($"總計：{totalArea:F2} m²（{totalPing:F2} 坪）");
+            lines.Add(Strings.T("calc.total", totalArea, totalPing));
             if (_lastEstimate != null)
             {
                 var r = _lastEstimate;
                 lines.Add("");
-                lines.Add($"含耗損面積：{r.NeededAreaM2:F2} m²");
-                lines.Add($"需求片數：{r.TileCount} 片");
-                lines.Add($"需求箱數：{r.Boxes} 箱");
-                lines.Add($"估價（依箱）：{r.PriceByBox:F0}");
-                lines.Add($"估價（依坪）：{r.PriceByPing:F0}");
+                lines.AddRange(Strings.T("calc.result", r.NeededAreaM2, r.TileCount, r.Boxes, r.PriceByBox, r.PriceByPing).Split('\n'));
             }
 
             int width = 480, lineH = 24, topH = 50, pad = 20;

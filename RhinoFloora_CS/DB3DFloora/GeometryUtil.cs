@@ -20,6 +20,15 @@ namespace DB3DFloora
             {
                 if (!face.TryGetPlane(out var plane, Tol))
                     return (null, default);
+                if (face.OrientationIsReversed)
+                {
+                    // BrepFace.TryGetPlane 回傳的是底層 Surface 自己的參數化法向，不會考慮
+                    // 這個面本身的 OrientationIsReversed 旗標。很多「其他角度」的面（旋轉、
+                    // 陣列等操作產生的）剛好是方向被反轉過的面，不修正的話拿到的法向會反過來，
+                    // 導致磚塊往面「裡面」擠出、跟原本選取的曲面互相交集，而不是貼著面往外長。
+                    // 翻轉 Y 軸維持右手座標系（Z 軸＝法向會跟著翻正），U 軸（X）方向不變。
+                    plane = new Plane(plane.Origin, plane.XAxis, -plane.YAxis);
+                }
                 var loop = face.OuterLoop;
                 if (loop == null)
                     return (null, default);
@@ -87,10 +96,7 @@ namespace DB3DFloora
         public static List<Curve> ClipPolysToBoundary(
             IEnumerable<List<(double U, double V)>> polysUv, Plane gridPlane, Curve boundaryCurve)
         {
-            var bbox = boundaryCurve.GetBoundingBox(true);
-            var expanded = new BoundingBox(bbox.Min, bbox.Max);
-            expanded.Inflate(Math.Max(bbox.Diagonal.Length * 0.001, 0.01));
-
+            var expanded = ExpandedBoundingBox(boundaryCurve);
             var results = new List<Curve>();
             foreach (var polyUv in polysUv)
             {
@@ -115,26 +121,57 @@ namespace DB3DFloora
                 if (tileCurve == null || !tileCurve.IsValid)
                     continue;
 
-                Curve[] pieces;
-                try
-                {
-                    pieces = BooleanIntersection(tileCurve, boundaryCurve);
-                }
-                catch
-                {
-                    pieces = null;
-                }
-                if (pieces == null || pieces.Length == 0)
-                    continue;
-
-                foreach (var c in pieces)
-                {
-                    var amp = AreaMassProperties.Compute(c);
-                    if (amp != null && amp.Area > 1e-4)
-                        results.Add(c);
-                }
+                ClipOneCurveToBoundary(tileCurve, boundaryCurve, results);
             }
             return results;
+        }
+
+        /// <summary>把一組已經是真正 Curve（例如含弧線的 PolyCurve）的磚片裁切到 boundaryCurve 範圍內；
+        /// 對照 ClipPolysToBoundary，但不會先攤平成多邊形，弧線在裁切後仍然是弧線／NURBS，不會變成折線。</summary>
+        public static List<Curve> ClipCurvesToBoundary(IEnumerable<Curve> tileCurves, Curve boundaryCurve)
+        {
+            var expanded = ExpandedBoundingBox(boundaryCurve);
+            var results = new List<Curve>();
+            foreach (var tileCurve in tileCurves)
+            {
+                if (tileCurve == null || !tileCurve.IsValid)
+                    continue;
+                var cbb = tileCurve.GetBoundingBox(true);
+                if (!BBoxOverlap(cbb, expanded))
+                    continue;
+                ClipOneCurveToBoundary(tileCurve, boundaryCurve, results);
+            }
+            return results;
+        }
+
+        private static BoundingBox ExpandedBoundingBox(Curve boundaryCurve)
+        {
+            var bbox = boundaryCurve.GetBoundingBox(true);
+            var expanded = new BoundingBox(bbox.Min, bbox.Max);
+            expanded.Inflate(Math.Max(bbox.Diagonal.Length * 0.001, 0.01));
+            return expanded;
+        }
+
+        private static void ClipOneCurveToBoundary(Curve tileCurve, Curve boundaryCurve, List<Curve> results)
+        {
+            Curve[] pieces;
+            try
+            {
+                pieces = BooleanIntersection(tileCurve, boundaryCurve);
+            }
+            catch
+            {
+                pieces = null;
+            }
+            if (pieces == null || pieces.Length == 0)
+                return;
+
+            foreach (var c in pieces)
+            {
+                var amp = AreaMassProperties.Compute(c);
+                if (amp != null && amp.Area > 1e-4)
+                    results.Add(c);
+            }
         }
     }
 }
