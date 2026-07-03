@@ -24,35 +24,6 @@ Rhino 版移植：**Onon.Nihow**
 
 需求：Rhino 8（Windows 或 macOS）。
 
-## 專案結構
-
-```
-RhinoFloora/       Python + Eto.Forms 原型版（開發初期用來驗證可行性，非發布用）
-RhinoFloora_CS/    正式版：RhinoCommon + Eto.Forms 的 C# 編譯外掛（.rhp）
-  DB3DFloora/
-    *.cs                核心邏輯（圖案生成、材質、計算機、UI）
-    yak-any/             打包好的跨平台 Yak 套件（net7.0 + net48 合併成單一 platform:any 安裝檔）
-    .claude/skills/       Claude Code skill，記錄重新打包發布的完整流程
-```
-
-C# 版是唯一維護中的正式版本；Python 版僅作為開發過程的參考保留。
-
-## 從原始碼建置
-
-需要 [.NET SDK](https://dotnet.microsoft.com/) 與已安裝的 Rhino 8（提供 RhinoCommon／Eto.Forms 執行期）。
-
-```bash
-cd RhinoFloora_CS/DB3DFloora
-dotnet build -f net7.0   # Mac、新版 Windows Rhino 8
-dotnet build -f net48    # Rhino 7、傳統 Windows Rhino 8
-```
-
-編譯出的 `.rhp` 會在 `bin/Debug/<framework>/DB3DFloora.rhp`，可直接拖進 Rhino 測試。
-
-## 打包發布
-
-`yak-any/` 資料夾是官方的[多目標 Yak 套件格式](https://developer.rhino3d.com/guides/yak/creating-a-multi-targeted-rhino-plugin-package/)：`net7.0/`、`net48/` 兩份 build 加上根目錄一份 `manifest.yml`，`yak build` 會自動產出單一 `platform: any` 的 `.yak` 檔，Windows／Mac 使用者都用同一個檔案安裝。完整步驟見 [`.claude/skills/package-floora/SKILL.md`](RhinoFloora_CS/DB3DFloora/.claude/skills/package-floora/SKILL.md)。
-
 ## 授權與致謝
 
 原始外掛 **DB3D-Floora**（SketchUp 版）由 [DB3D.RENDER](https://www.db3drender.com/)（[Instagram](https://www.instagram.com/db3d.render/)）開發。本專案的 Rhino 移植版已取得原作者授權後公開發布。
